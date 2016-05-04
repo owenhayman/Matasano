@@ -92,7 +92,7 @@ int GetClosestCharIndex(float f)
         currentFreq = DistributiveFrequency[i];
 
         if (f < currentFreq) {
-            return ((currentFreq))
+            return ((f - lastFreq ) > (currentFreq - f)) ? currentFreq : lastFreq;
         }
 
         lastFreq = currentFreq;
