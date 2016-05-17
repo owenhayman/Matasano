@@ -108,7 +108,19 @@ char *GetClosestChars(float freqPercentage)
     return p;
 }
 
-/*char ***/ void AnalyseFrequency(char *charArray)
+void **NewDoubleArray(int n, int size)
+{
+    void **ptrArray = (void **)malloc(n);
+
+    int i;
+    for (i = 0; i < n; i++) {
+        ptrArray[i] = malloc(size);
+    }
+
+    return ptrArray;
+}
+
+char **AnalyseFrequency(char *charArray)
 {
     char *uniqueChars = GetUniqueArray(charArray);
     int *charFrequencies = GetCountArray(uniqueChars, charArray);
@@ -116,6 +128,8 @@ char *GetClosestChars(float freqPercentage)
     float frequencyPercentage;
     char **stringPermutations;
     char *closestChars, c;
+
+    char **returnArray = (char **)NewDoubleArray(3, strlen(uniqueChars));
 
     int i, f;
     for (i = 0; i < strlen(uniqueChars); i++) {
@@ -127,16 +141,22 @@ char *GetClosestChars(float freqPercentage)
 
         closestChars = GetClosestChars(frequencyPercentage);
 
+        int j;
+        for (j = 0; j < 3; j++)
+            returnArray[j][i] = closestChars[j];
+
     }
 
+    return returnArray;
 }
 
 int main(int argc, char *argv[])
 {
     char *c = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     char r[strlen(c) / 2 + 1];
+    char **retval;
 
     HexDecode(r, c, strlen(c) / 2 + 1);
     //PrintCharacterFrequencies(c);
-    AnalyseFrequency(r);
+    retval = AnalyseFrequency(r);
 }
