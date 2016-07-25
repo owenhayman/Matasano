@@ -1,22 +1,27 @@
 #include <stdio.h>
+#include "../lib/definitions.h"
 #include "../lib/hexToB64.h"
+#include <inttypes.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>
 
 char DistributiveFrequencyMap[] = {
     'E', 'T', 'A', 'O', 'I', 'N',
     'S', 'H', 'R', 'D', 'L', 'C',
     'U', 'M', 'W', 'F', 'G', 'Y',
     'P', 'B', 'V', 'K', 'J', 'X',
-    'Q', 'Z'
+    'Q', 'Z', '\0'
 };
 
 float DistributiveFrequency[] = {
-    12.702, 9.095, 8.167, 7.507,
-     6.966, 6.749, 6.327, 6.094,
-     5.987, 4.254, 4.025, 2.782,
-     2.758, 2.406, 2.361, 2.228,
-     2.015, 1.974, 1.929, 1.492,
-     0.978, 0.772, 0.153, 0.150,
-     0.095, 0.074
+    0.12702, 0.09095, 0.08167, 0.07507,
+    0.06966, 0.06749, 0.06327, 0.06094,
+    0.05987, 0.04254, 0.04025, 0.02782,
+    0.02758, 0.02406, 0.02361, 0.02228,
+    0.02015, 0.01974, 0.01929, 0.01492,
+    0.00978, 0.00772, 0.00153, 0.00150,
+    0.00095, 0.00074
 };
 
 char FirstLetterFrequencyMap[] = {
@@ -24,34 +29,47 @@ char FirstLetterFrequencyMap[] = {
     'O', 'B', 'M', 'F', 'C', 'L',
     'D', 'P', 'N', 'G', 'E', 'R',
     'Y', 'U', 'V', 'J', 'K', 'Q',
-    'Z', 'X'
+    'Z', 'X', '\0'
 };
 
 float FirstLetterFrequency[] = {
-    16.671, 11.602, 7.755, 7.232,
-     6.753,  6.286, 6.264, 4.702,
-     4.383,  3.779, 3.551, 2.705,
-     2.670,  2.545, 2.365, 2.007,
-     1.950,  1.653, 1.620, 1.487,
-     0.649,  0.597, 0.590, 0.173,
-     0.034,  0.017
+    0.16671, 0.11602, 0.07755, 0.07232,
+    0.06753, 0.06286, 0.06264, 0.04702,
+    0.04383, 0.03779, 0.03551, 0.02705,
+    0.02670, 0.02545, 0.02365, 0.02007,
+    0.01950, 0.01653, 0.01620, 0.01487,
+    0.00649, 0.00597, 0.00590, 0.00173,
+    0.00034, 0.00017
 };
+
+int GetCharIndex(char c, char* arr)
+{
+    char *ptr = strchr(arr, c);
+
+    return ptr ? (int)(ptr - arr) : -1;
+}
+
+void upper(char *str)
+{
+    int i;
+    for (i = 0; str[i]; i++)
+        str[i] = toupper(str[i]);
+}
 
 char *GetUniqueArray(char *charArray) {
     char *uniqueChars = malloc(1);
     memset(uniqueChars, 0, 1);
 
-    int charLen = 2;
-
     int i;
+    char *ptr;
+    int charLen = 2;
     for (i = 0; i < strlen(charArray); i++) {
-        char *p = strchr(uniqueChars, charArray[i]);
+        ptr = strchr(uniqueChars, charArray[i]);
 
-        if (p == NULL) {
+        if (ptr == NULL) {
             uniqueChars[strlen(uniqueChars)] = charArray[i];
             uniqueChars = (char *)realloc(uniqueChars, charLen++);
             uniqueChars[charLen - 2] = '\0';
-            continue;
         }
     }
 
@@ -76,7 +94,7 @@ void PrintCharacterFrequencies(char *string)
 
     int i;
     for (i = 0; i < strlen(uniqueChars); i++)
-        printf("The character: 0x%x occurs %d times.\n", uniqueChars[i], charFrequencies[i]);
+        printf("The character: %c occurs %d times.\n", uniqueChars[i], charFrequencies[i]);
 }
 
 int GetClosestCharIndex(float f)
@@ -110,7 +128,7 @@ char *GetClosestChars(float freqPercentage)
 
 void **NewDoubleArray(int n, int size)
 {
-    void **ptrArray = (void **)malloc(n);
+    void **ptrArray = (void **)calloc(n, sizeof(void *));
 
     int i;
     for (i = 0; i < n; i++) {
@@ -120,32 +138,75 @@ void **NewDoubleArray(int n, int size)
     return ptrArray;
 }
 
+void ExpandDoubleArray(void **dblArray, int currentSize, int n, int size)
+{
+    int i;
+    for (i = 0; i < n; i++) {
+        realloc(dblArray, sizeof(void *) * (currentSize + n));
+        dblArray[(currentSize - 1) + i] = malloc(size);
+    }
+}
+
+double ChiSquare(double charCount, double expectedCount)
+{
+    return pow(charCount - expectedCount, 2) / expectedCount;
+}
+
+double ScoreString(char *uniqueChars, int *charCounts)
+{
+
+    int i, count, index;
+    double score = 0.0;
+    double freq;
+    for (i = 0; i < strlen(uniqueChars); i++)
+    {
+        count = charCounts[i];
+        index = GetCharIndex(uniqueChars[i], DistributiveFrequencyMap);
+
+        //printf("First '%c' Index: %d\n", uniqueChars[i], index);
+
+        if (index > -1 && index < 26)
+            freq = DistributiveFrequency[index];
+        else
+            //freq = -100;
+            freq = 0.00001;
+
+        score += ChiSquare(count, freq);
+    }
+
+    return score;
+}
+
+void CheckKeyScores(char **bestXorKeys, char *currentXorKey)
+{
+    int i;
+    for (i = 0; i < 3; i++)
+        // Blah blah
+        bestXorKeys[i] = currentXorKey;
+}
+
+void SingleByteXORBrute(char *charArray, char **returnArray)
+{
+    char **bestXorKeys = NewDoubleArray(3, strlen(charArray));
+    char *currentXorKey;
+
+    int i;
+    for (i = 0; i < 256; i++) {
+        currentXorKey = RepeatByte(ASCII_CHARS[i], strlen(charArray));
+
+        CheckKeyScores(char **bestXorKeys, currentXorKey);
+    }
+}
+
 char **AnalyseFrequency(char *charArray)
 {
     char *uniqueChars = GetUniqueArray(charArray);
     int *charFrequencies = GetCountArray(uniqueChars, charArray);
+    char **returnArray = NewDoubleArray(1, strlen(charArray));
 
-    float frequencyPercentage;
-    char **stringPermutations;
-    char *closestChars, c;
+    double initialScore = ScoreString( charArray, charFrequencies );
 
-    char **returnArray = (char **)NewDoubleArray(3, strlen(uniqueChars));
-
-    int i, f;
-    for (i = 0; i < strlen(uniqueChars); i++) {
-        c = uniqueChars[i];
-        f = charFrequencies[i];
-
-        frequencyPercentage = ((float)f / (float)strlen(charArray)) * 100;
-        //printf("Character: 0x%x\nAverage: %.2f\n", c, frequencyAverage);
-
-        closestChars = GetClosestChars(frequencyPercentage);
-
-        int j;
-        for (j = 0; j < 3; j++)
-            returnArray[j][i] = closestChars[j];
-
-    }
+    
 
     return returnArray;
 }
@@ -154,9 +215,14 @@ int main(int argc, char *argv[])
 {
     char *c = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     char r[strlen(c) / 2 + 1];
-    char **retval;
 
     HexDecode(r, c, strlen(c) / 2 + 1);
-    //PrintCharacterFrequencies(c);
-    retval = AnalyseFrequency(r);
+    upper(r);
+
+    PrintCharacterFrequencies(r);
+    AnalyseFrequency(r);
+
+    //printf("%s\n%s\n%s", retval[0], retval[1], retval[2]);
+
+    return 1;
 }
